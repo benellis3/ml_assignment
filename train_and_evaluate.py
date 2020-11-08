@@ -1,13 +1,8 @@
-import argparse
 import math
 from random import sample
 
 import torch
 from tqdm import tqdm
-
-from layers import FullyConnected
-from load_data import Dataset, load_iris_data
-from model import Model, RMSProp
 
 
 def train(model, optimiser, data, targets, size=64, use_tqdm=False):
@@ -15,27 +10,43 @@ def train(model, optimiser, data, targets, size=64, use_tqdm=False):
     it = minibatches(data, targets, size=size)
     if use_tqdm:
         it = tqdm(it)
+    cum_loss = 0
+    count = 0
     for batch, targets in it:
         optimiser.zero_grad()
         predictions = model(batch)
 
         loss = cross_entropy(predictions, targets)
 
+        cum_loss += loss
+        count += 1
         loss.backward()
 
         optimiser.step()
+    # return average loss over the epoch
+    return cum_loss / count
 
 
 def test(model, data, targets):
     predictions = model(data)
 
+    no_classes = torch.max(targets) + 1
+
     loss = cross_entropy(predictions, targets)
 
     _, predicted_classes = torch.max(predictions, dim=1)
 
+    correct_targets = targets[predicted_classes == targets]
     correct = torch.sum(predicted_classes == targets)
 
-    return loss, correct / len(targets)
+    # compute the correct number per class
+    accuracy_per_class = []
+    for i in range(no_classes):
+        accuracy_per_class.append(
+            torch.sum(correct_targets == i) / torch.sum(targets == i)
+        )
+
+    return loss, correct / len(targets), accuracy_per_class
 
 
 def cross_entropy(predictions, targets, dim=1):

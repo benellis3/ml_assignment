@@ -43,7 +43,23 @@ class Layer:
 
 
 class Layer2d(Layer):
-    def _im_batch_to_column(self, x, stride=1, flatten_channels=True):
+    def _slow_im_batch_to_column(self, x, stride=1, flatten_channels=True):
+
+        rows = []
+        for row in range(0, x.size(-1) - self.kernel_size + 1, stride):
+            for col in range(0, x.size(-2) - self.kernel_size + 1, stride):
+                window = x[
+                    :, :, row : row + self.kernel_size, col : col + self.kernel_size
+                ]
+                if flatten_channels:
+                    rows.append(window.reshape(window.size(0), -1))
+                else:
+                    rows.append(window.reshape(window.size(0), window.size(1), -1))
+
+        dim = 1 if flatten_channels else 2
+        return torch.stack(rows, dim=dim)
+
+    def _fast_im_batch_to_column(self, x, stride=1, flatten_channels=True):
         """Transforms the image batch x from shape (N, C_in, H, W) to
         (N, (H - K + 1) * (W - K + 1), C_in * K**2) where K is the kernel size.
         This allows convolution to be done by matrix multiplication"""
@@ -68,6 +84,16 @@ class Layer2d(Layer):
             )
 
         return patches
+
+    def _im_batch_to_column(self, x, stride=1, flatten_channels=True, slow=False):
+        if slow:
+            return self._slow_im_batch_to_column(
+                x, stride=stride, flatten_channels=flatten_channels
+            )
+        else:
+            return self._fast_im_batch_to_column(
+                x, stride=stride, flatten_channels=flatten_channels
+            )
 
 
 class FullyConnected(Layer):
@@ -108,9 +134,9 @@ class Conv2d(Layer2d):
         self.bias = self._init_weights(torch.zeros(out_channels), gain)
         self.bias.requires_grad_()
 
-    def __call__(self, x):
+    def __call__(self, x, slow=False):
         # shape (N, (H - K + 1)*(W - K + 1), C_in * K**2)
-        col_x = self._im_batch_to_column(x)
+        col_x = self._im_batch_to_column(x, slow=slow)
 
         # shape (K ** 2 * C_in, C_out)
         weights_tmp = self.weights.view(
@@ -131,9 +157,9 @@ class MaxPool2d(Layer2d):
     def __init__(self, kernel_size):
         self.kernel_size = kernel_size
 
-    def __call__(self, x):
+    def __call__(self, x, slow=False):
         col_x = self._im_batch_to_column(
-            x, stride=self.kernel_size, flatten_channels=False
+            x, stride=self.kernel_size, flatten_channels=False, slow=slow
         )
         # take the maximum over the last dimension
         out, _ = torch.max(col_x, dim=-1)
