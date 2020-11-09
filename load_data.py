@@ -23,7 +23,7 @@ def load_iris_data(split=0.2):
     test_data = from_numpy(test_data).float()
     test_targets = from_numpy(test_targets)
 
-    return train_data, test_data, train_targets, test_targets
+    return train_data, test_data, train_targets, test_targets, dataset.target_names
 
 
 def load_kmnist_data():
@@ -44,4 +44,5 @@ def load_kmnist_data():
         test_data.unsqueeze(1),
         train_set.targets,
         test_set.targets,
+        train_set.classes,
     )

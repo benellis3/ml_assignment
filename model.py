@@ -17,6 +17,8 @@ class Model:
 
     def parameters(self):
         params = [getattr(layer, "weights", None) for layer in self.layers]
+        bias_params = [getattr(layer, "bias", None) for layer in self.layers]
+        params.extend(bias_params)
         return [param for param in params if param is not None]
 
 

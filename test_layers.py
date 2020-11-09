@@ -1,3 +1,4 @@
+import pytest
 import torch
 from torch import nn as N
 from torch.nn.functional import conv2d
@@ -39,7 +40,8 @@ def test_fully_connected():
     assert torch.allclose(out, expected)
 
 
-def test_conv2d():
+@pytest.mark.parametrize("slow", [False, True])
+def test_conv2d(slow):
     # 3 x 1 x 2 x 2
     data = torch.tensor(
         [
@@ -53,7 +55,7 @@ def test_conv2d():
     layer = Conv2d(1, 3, 1)
     layer.weights = torch.tensor([[[[10.0, 20.0, 30.0]]]])
     layer.bias = torch.tensor([1.0, 2.0, 3.0])
-    out = layer(data)
+    out = layer(data, slow=slow)
 
     torch_out = conv2d(data, layer.weights.view(3, 1, 1, 1), layer.bias)
     torch_out = torch.relu(torch_out)
