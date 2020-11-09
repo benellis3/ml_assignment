@@ -71,7 +71,7 @@ def main(args):
         "--savefig", action="store_true", help="Save the figures as pdfs"
     )
 
-    parsed_args = parser.parse_args()
+    parsed_args, _ = parser.parse_known_args()
     epochs = parsed_args.epochs
 
     if parsed_args.dataset == Dataset.IRIS:
