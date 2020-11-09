@@ -11,17 +11,16 @@ from model import Model, RMSProp
 from train_and_evaluate import test, train
 
 
-def make_image_grid(dataset, labels, savefig=False):
+def make_image_grid(dataset, labels, savefig=False, n_row=50):
     # find 20 examples of each class
     classes = labels.max()
     images = []
-    fig, ax = plt.subplots(1, 1)
+    fig, ax = plt.subplots(1, 1, figsize=(20, 8))
     for c in range(classes + 1):
-        images.append(dataset[labels == c][:20])
+        images.append(dataset[labels == c][:n_row])
     images = torch.stack(images)
     images = images.flatten(start_dim=0, end_dim=1)
-    images = images.unsqueeze(dim=1)
-    grid = make_grid(images, nrow=20)
+    grid = make_grid(images, nrow=n_row)
     numpy_grid = grid.numpy()
     ax.imshow(numpy_grid.transpose((1, 2, 0)), interpolation="nearest")
     ax.set_xticklabels([])
